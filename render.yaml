@@ -1,0 +1,42 @@
+# Render Blueprint: creates the API and the website in one go.
+# Render dashboard -> New -> Blueprint -> pick this repository.
+# You will be asked for the three values marked "sync: false". See README section 11.
+services:
+  # ---------- API (Node + Express + WebSocket chat) ----------
+  - type: web
+    name: book-exchange-api
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI        # MongoDB Atlas connection string
+        sync: false
+      - key: JWT_SECRET         # Render generates a long random value for you
+        generateValue: true
+      - key: CLIENT_ORIGINS     # the website's URL, e.g. https://book-exchange-web.onrender.com
+        sync: false
+
+  # ---------- Website (React, built by Vite) ----------
+  - type: web
+    name: book-exchange-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install --include=dev && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: VITE_API_URL       # the API's URL, e.g. https://book-exchange-api.onrender.com
+        sync: false
+    routes:
+      # Lets React Router handle /offers, /books/3, ... when a page is refreshed or a link is opened directly
+      - type: rewrite
+        source: /*
+        destination: /index.html
